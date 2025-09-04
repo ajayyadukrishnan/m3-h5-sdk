@@ -11,13 +11,26 @@ type ISupportedAngularCommand = 'new' | 'serve' | 'build';
 
 export interface IOdinConfiguration extends Configuration {
    projectName?: string;
+   m3Url?: string;
+   portalUrl?: string;
 }
 
 export const removeSurroundingSlash = (text: string): string => {
    return text.replace(/^\//, '').replace(/\/$/, '');
 };
 
-export const isValidProxyUrl = (url: string) => url.match(/^https?:\/\/[^:\/]+(:\d+)?(\/.*)?$/) !== null;
+// export const isValidProxyUrl = (url: string) => url.match(/^https?:\/\/[^:\/]+(:\d+)?(\/.*)?$/) !== null;
+/**
+ * Returns true if `url` is a well-formed HTTP or HTTPS URL.
+ */
+export function isValidProxyUrl(url: string): boolean {
+   try {
+      const parsed = new URL(url);
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+   } catch {
+      return false;
+   }
+}
 
 export const executeAngularCli = async (command: ISupportedAngularCommand, ...options: string[]) => {
    await new Promise<void>((resolveFun, rejectFun) => {

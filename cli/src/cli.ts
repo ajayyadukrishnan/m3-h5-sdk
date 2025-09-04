@@ -6,7 +6,7 @@ import type { ConfirmQuestion, InputQuestion, ListQuestion } from 'inquirer';
 import inquirer from 'inquirer';
 import path from 'path';
 import url from "url";
-import { buildProject, INewProjectOptions, IServeOptions, login, newProject, serveProject, setConfiguration } from './commands/index.js';
+import { buildProject, INewProjectOptions, IServeOptions, login, loginCloud, newProject, serveProject, setConfiguration } from './commands/index.js';
 import { isValidProxyUrl } from './utils.js';
 
 // For __dirname in es module: https://blog.logrocket.com/alternatives-dirname-node-js-es-modules/
@@ -56,52 +56,194 @@ program
    .name('odin')
    .description('Tool to set up and manage a web application with Odin.');
 
+/**
+ * Take raw commander inputs, validate CLI‐only bits
+ * and return a partial “overrides” object.
+ */
+function buildCliOptions(projectName: string, opts: any) {
+   const cli: any = {};
+
+   if (projectName) {
+      cli.name = projectName;
+   }
+
+   // style flag: soho => 'soho', explicitly --no-soho => 'none'
+   if (opts.soho !== undefined) {
+      cli.style = opts.soho ? 'soho' : 'none';
+   }
+
+   if (opts.angular !== undefined) {
+      cli.angular = opts.angular;
+   }
+
+   if (opts.install !== undefined) {
+      cli.install = opts.install;
+   }
+
+   if (opts.skipGit !== undefined) {
+      cli.git = !opts.skipGit;
+   }
+
+   if (opts.proxy) {
+      if (!isValidProxyUrl(opts.proxy)) {
+         exit(
+            `Proxy url '${opts.proxy}' is invalid.`
+            + ` It should be protocol://hostname:port`
+         );
+      }
+      cli.proxy = { target: opts.proxy };
+   }
+
+   if (opts.portal) {
+      if (!isValidProxyUrl(opts.portal)) {
+         exit(
+            `Portal url '${opts.portal}' is invalid.`
+            + ` It should be protocol://hostname`
+         );
+      }
+      cli.portal = opts.portal;
+   }
+
+   return cli;
+}
+
+/**
+ * Given a partial overrides object, prompt only
+ * for the values that are still undefined.
+ */
+async function promptMissingOptions(overrides: any) {
+   const questions = [];
+
+   if (!overrides.name) {
+      questions.push({
+         type: 'input',
+         name: 'name',
+         message: 'What is the name of the project?',
+         validate: (input: string) => {
+            if (!/^[a-zA-Z0-9-]+$/.test(input)) {
+               return 'Only letters, numbers and dashes are allowed.';
+            }
+            if (fs.existsSync(input)) {
+               return 'That directory already exists.';
+            }
+            return true;
+         }
+      });
+   }
+
+   if (overrides.style === undefined) {
+      questions.push({
+         type: 'list',
+         name: 'style',
+         message: 'Which style library do you want to use?',
+         choices: [
+            { name: 'SoHo (Infor Design System)', value: 'soho' },
+            { name: 'None', value: 'none' }
+         ],
+         default: 'soho'
+      });
+   }
+
+   if (overrides.angular === undefined) {
+      questions.push({
+         type: 'confirm',
+         name: 'angular',
+         message: 'Use Angular CLI project structure?',
+         default: true
+      });
+   }
+
+   if (!overrides.proxy) {
+      questions.push({
+         type: 'input',
+         name: 'proxy',
+         message: 'What is the URL of your M3 environment?',
+         default: 'https://m3prdxyz.m3.xyz.inforcloudsuite.com',
+         validate: (url: string) =>
+            isValidProxyUrl(url)
+               ? true
+               : 'Must be valid URL like: protocol://hostname:port'
+      });
+   }
+
+   if (!overrides.portal) {
+      questions.push({
+         type: 'input',
+         name: 'portal',
+         message: 'What is the URL of your Portal environment?',
+         default: 'https://mingle-xyz-portal.xyz.inforcloudsuite.com',
+         validate: (url: string) =>
+            isValidProxyUrl(url)
+               ? true
+               : 'Must be valid URL like: protocol://hostname'
+      });
+   }
+
+   if (overrides.git === undefined) {
+      questions.push({
+         type: 'confirm',
+         name: 'git',
+         message: 'Initialize a Git repository?',
+         default: true
+      });
+   }
+
+   if (overrides.install === undefined) {
+      questions.push({
+         type: 'confirm',
+         name: 'install',
+         message: 'Install NPM dependencies? (this may take a while)',
+         default: false
+      });
+   }
+
+   const answers = questions.length
+      ? await inquirer.prompt(questions)
+      : {};
+
+   // Merge CLI overrides + prompted answers
+   return {
+      name: overrides.name || answers.name,
+      style: overrides.style || answers.style,
+      angular:
+         overrides.angular !== undefined
+            ? overrides.angular
+            : answers.angular,
+      proxy:
+         overrides.proxy ||
+         { target: answers.proxy },
+      portalUrl: overrides.portal !== undefined ? overrides.portal : answers.portal,
+      git:
+         overrides.git !== undefined
+            ? overrides.git
+            : answers.git,
+      install:
+         overrides.install !== undefined
+            ? overrides.install
+            : answers.install,
+      m3Url: overrides.m3Url || answers.m3Url,
+      tenant: overrides.tenant || answers.tenant
+   };
+}
+
+// ─── CLI SETUP ────────────────────────────────────────────────────────────────
 program
    .command('new [projectName]')
    .description('Create a new project')
-   .option('--proxy [url]', 'URL to MI REST Service, e.g "https://my.m3.environment.com:54008"')
-   .option('-s, --soho', 'Set up as a Soho-styled project')
-   .option('-a, --angular', 'Set up as an Angular CLI project')
-   .option('-i, --install', 'Install NPM dependencies')
-   .option('--skip-git', 'Skip initialization of a git repository')
-   .action(async (projectName, options) => {
-      if (!projectName) {
-         return await inquireNewProject();
+   .option('-s, --soho', 'Set up as a Soho-styled project', 'none')
+   .option('-a, --angular', 'Set up as an Angular CLI project', undefined)
+   .option('-i, --install', 'Install NPM dependencies', undefined)
+   .option('--skip-git', 'Skip initialization of a git repo', undefined)
+   .option('-p, --proxy <url>', 'URL for M3 environment')
+   .option('-po, --portal <url>', 'URL for Portal environment')
+   .action(async (projectName, opts) => {
+      try {
+         const cliOverrides = buildCliOptions(projectName, opts);
+         const fullOpts = await promptMissingOptions(cliOverrides);
+         await wrapNew(fullOpts);
+      } catch (err: any) {
+         exit(err.message);
       }
-      const newOptions: INewProjectOptions = {
-         name: projectName,
-         style: 'none',
-      };
-      if (options.proxy) {
-         if (!isValidProxyUrl(options.proxy)) {
-            exit(`Proxy url '${options.proxy}' is invalid. It should be of the format: protocol://hostname:port`);
-         }
-         newOptions.proxy = {
-            target: options.proxy,
-         };
-      }
-
-      if (options.soho) {
-         newOptions.style = 'soho';
-      } else {
-         newOptions.style = 'none';
-      }
-
-      if (options.skipGit) {
-         newOptions.git = false;
-      } else {
-         newOptions.git = true;
-      }
-
-      if (options.angular) {
-         newOptions.angular = true;
-      }
-
-      if (options.install) {
-         newOptions.install = true;
-      }
-
-      await wrapNew(newOptions);
    });
 
 program
@@ -120,7 +262,6 @@ program
 
 program
    .command('login <ionApiConfigPath>')
-   .alias('experimental-login')
    .option('--m3 <m3Url>', 'URL to M3')
    .option('-c, --update-config', 'Update odin.json configuration')
    .description('Multi-Tenant login')
@@ -131,6 +272,19 @@ program
             m3Url: options.m3,
             updateConfig: options.updateConfig,
          });
+      } catch (error) {
+         console.error(error);
+         exit('Login command failed');
+      }
+   });
+
+program
+   .command('login-cloud <ionApiConfigPath>')
+   // .option('-c, --update-config', 'Update odin.json configuration')
+   .description('Multi-Tenant login')
+   .action(async (ionApiConfig: string, options) => {
+      try {
+         await loginCloud({ ionApiConfig });
       } catch (error) {
          console.error(error);
          exit('Login command failed');

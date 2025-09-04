@@ -26,8 +26,8 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "18.19"
 
@@ -51,7 +51,7 @@ jobs:
           zip -q cli.zip ./cli -r
 
       - name: Upload CLI archive
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: cli-build-result
           path: cli.zip
@@ -68,11 +68,11 @@ jobs:
       PUPPETEER_SKIP_DOWNLOAD: true
 
     steps:
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           node-version: "18.19"
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: cli-build-result
           path: .
@@ -89,19 +89,19 @@ jobs:
 
       - name: Generate Angular soho app
         run: |
-          odin new --angular --soho --install --skip-git app-angular-soho
+          odin new app-angular-soho --angular --soho --install --skip-git -p https://proxy.com -po http://portal.com 
           cd app-angular-soho
           odin build
 
       - name: Generate Angular app
         run: |
-          odin new --angular --install --skip-git app-angular-none
+          odin new app-angular-none --soho none --angular --install --skip-git  -p https://proxy.com -po http://portal.com 
           cd app-angular-none
           odin build
 
       - name: Generate basic soho app
         run: |
-          odin new --soho --install --skip-git app-basic-soho
+          odin new app-basic-soho --soho --install --angular false --skip-git -p https://proxy.com -po http://portal.com
           cd app-basic-soho
           odin build
 
@@ -114,9 +114,9 @@ jobs:
 
     steps:
       #- uses: browser-actions/setup-chrome@latest
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           node-version: "18.19"
 

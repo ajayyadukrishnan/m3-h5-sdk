@@ -1,5 +1,7 @@
 {
    "projectName": "ODIN_PROJECT_NAME",
+   "m3Url": "ODIN_M3_URL",
+   "portalUrl": "ODIN_PORTAL_URL",
    "proxy": {
       "/m3api-rest": {
          "target": "ODIN_PROXY_TARGET",
