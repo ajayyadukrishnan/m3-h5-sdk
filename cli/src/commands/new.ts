@@ -17,6 +17,7 @@ export interface INewProjectOptions {
    angular?: boolean;
    install?: boolean;
    git?: boolean;
+   portalUrl?: string;
 }
 
 
@@ -125,6 +126,15 @@ const addOdinConfig = (projectRoot: string, options: INewProjectOptions) => {
    } else {
       console.warn('Warning: Proxy is not configured. You will need to configure it in \'odin.json\', or with the \'odin set\' command');
    }
+
+   if (options.proxy?.target) {
+      config.m3Url = options.proxy.target;
+   }
+
+   if (options.portalUrl) {
+      config.portalUrl = options.portalUrl;
+   }
+
    configureName(options.name, config);
    writeConfig(config, projectRoot);
 };

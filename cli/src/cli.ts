@@ -6,7 +6,7 @@ import type { ConfirmQuestion, InputQuestion, ListQuestion } from 'inquirer';
 import inquirer from 'inquirer';
 import path from 'path';
 import url from "url";
-import { buildProject, INewProjectOptions, IServeOptions, login, newProject, serveProject, setConfiguration } from './commands/index.js';
+import { buildProject, INewProjectOptions, IServeOptions, login, loginCloud, newProject, serveProject, setConfiguration } from './commands/index.js';
 import { isValidProxyUrl } from './utils.js';
 
 // For __dirname in es module: https://blog.logrocket.com/alternatives-dirname-node-js-es-modules/
@@ -272,6 +272,19 @@ program
             m3Url: options.m3,
             updateConfig: options.updateConfig,
          });
+      } catch (error) {
+         console.error(error);
+         exit('Login command failed');
+      }
+   });
+
+program
+   .command('login-cloud <ionApiConfigPath>')
+   // .option('-c, --update-config', 'Update odin.json configuration')
+   .description('Multi-Tenant login')
+   .action(async (ionApiConfig: string, options) => {
+      try {
+         await loginCloud({ ionApiConfig });
       } catch (error) {
          console.error(error);
          exit('Login command failed');
