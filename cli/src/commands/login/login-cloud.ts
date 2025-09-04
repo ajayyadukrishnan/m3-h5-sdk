@@ -28,12 +28,7 @@ export async function loginCloud({ ionApiConfig }: LoginOptions) {
    await page.goto(`${odinConfig.m3Url}/mne`);
    const cookies = await waitForMneCookies(page);
    writeCookiesToFile(cookies);
-   console.log("Got M3 session cookie", cookies);
-
-   // console.log('Waiting for ION API Token');
-   // const token = await waitForAccessToken(page, config);
-   // writeTokenToFile(token);
-   // console.log('Got ION API token');
+   console.log("Got M3 session cookie");
 
    // if (options.updateConfig) {
    //    console.log('Updating odin.json');
