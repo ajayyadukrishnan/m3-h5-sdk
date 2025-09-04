@@ -89,7 +89,7 @@ jobs:
 
       - name: Generate Angular soho app
         run: |
-          odin new --angular --soho --install --skip-git app-angular-soho
+          odin new app-angular-soho --angular --soho --install --skip-git -p https://proxy.com -po http://portal.com 
           cd app-angular-soho
           odin build
 
