@@ -95,7 +95,7 @@ jobs:
 
       - name: Generate Angular app
         run: |
-          odin new app-angular-none --angular --install --skip-git  -p https://proxy.com -po http://portal.com 
+          odin new app-angular-none --soho none --angular --install --skip-git  -p https://proxy.com -po http://portal.com 
           cd app-angular-none
           odin build
 
