@@ -1,3 +1,18 @@
+# 7.2.0
+
+- Added new `login-cloud` command.
+- `odin new` command has been modified to accept a value for portal url.
+
+## Notes
+
+- To use the new command in an existing project, you need to update your `odin.json` file to include the following properties (update with your own urls):
+  ```json
+  {
+    "m3Url": "https://m3xyz.m3.xyz.inforcloudsuite.com",
+    "portalUrl": "https://mingle-xyz-portal.xyz.inforcloudsuite.com"
+  }
+  ```
+
 # 7.1.1
 
 - Export of MIUtil and Bookmark classes.
@@ -10,7 +25,7 @@
 
 ## Known Issues
 
-- 
+-
 
 # 7.0.0
 
