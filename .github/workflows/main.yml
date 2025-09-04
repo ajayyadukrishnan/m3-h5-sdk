@@ -26,8 +26,8 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "18.19"
 
@@ -51,7 +51,7 @@ jobs:
           zip -q cli.zip ./cli -r
 
       - name: Upload CLI archive
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: cli-build-result
           path: cli.zip
@@ -68,11 +68,11 @@ jobs:
       PUPPETEER_SKIP_DOWNLOAD: true
 
     steps:
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           node-version: "18.19"
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: cli-build-result
           path: .
@@ -114,9 +114,9 @@ jobs:
 
     steps:
       #- uses: browser-actions/setup-chrome@latest
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           node-version: "18.19"
 
