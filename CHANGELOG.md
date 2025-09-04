@@ -5,7 +5,7 @@
 
 ## Notes
 
-- To use the new command in an existing project, you need to update your `odin.json` file to include the following properties (update with your own urls):
+- To use the new `login-cloud` command in an existing project, you need to update your `odin.json` file to include the following properties (update with your own urls):
   ```json
   {
     "m3Url": "https://m3xyz.m3.xyz.inforcloudsuite.com",
