@@ -230,7 +230,7 @@ async function promptMissingOptions(overrides: any) {
 program
    .command('new [projectName]')
    .description('Create a new project')
-   .option('-s, --soho', 'Set up as a Soho-styled project', undefined)
+   .option('-s, --soho', 'Set up as a Soho-styled project', 'none')
    .option('-a, --angular', 'Set up as an Angular CLI project', undefined)
    .option('-i, --install', 'Install NPM dependencies', undefined)
    .option('--skip-git', 'Skip initialization of a git repo', undefined)
