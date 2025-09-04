@@ -10,8 +10,8 @@
       "clean": "git clean -f -d -X dist"
    },
    "author": {
-      "name": "Fredrik Eriksson",
-      "email": "fredrik.eriksson@infor.com"
+      "name": "Gunilla Andersson",
+      "email": "gunilla.andersson@infor.com"
    },
    "license": "Apache-2.0",
    "repository": {
