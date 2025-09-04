@@ -101,7 +101,7 @@ jobs:
 
       - name: Generate basic soho app
         run: |
-          odin new app-basic-soho --soho --install --skip-git -p https://proxy.com -po http://portal.com
+          odin new app-basic-soho --soho --install --angular false --skip-git -p https://proxy.com -po http://portal.com
           cd app-basic-soho
           odin build
 
