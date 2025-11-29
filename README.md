@@ -8,6 +8,73 @@ Odin is a framework for building web applications for M3, that consists of three
 
 Odin is not a framework of UI components nor does it require the application developer to use a specific UI framework. There is however optional support for the Infor IDS controls (previously know as SoHo), using jQuery or Angular.
 
+# Migration from @infor-up/m3-odin-cli
+
+If you have the old `@infor-up/m3-odin-cli` package installed, you need to uninstall it before installing the new version.
+
+## Uninstall Old Version
+
+First, uninstall the old CLI package:
+
+```bash
+npm uninstall -g @infor-up/m3-odin-cli
+```
+
+Verify it's been removed:
+
+```bash
+odin -h
+# Should show: 'odin' is not recognized as an internal or external command
+# (or similar error message)
+```
+
+## Install New Version
+
+Install the new CLI package directly from GitHub:
+
+```bash
+npm install -g https://raw.githubusercontent.com/ajayyadukrishnan/m3-h5-sdk/refs/heads/master/cli/ajayyadukrishnan-m3-odin-cli-7.2.0.tgz
+```
+
+Verify the installation:
+
+```bash
+odin -h
+# Should display the CLI help menu
+```
+
+## What's Changed
+
+The new version includes several enhancements:
+
+- **Devcontainer Support**: New projects automatically include `.devcontainer` configuration files for containerized development
+- **Chrome Remote Debugging**: Support for using Chrome on the host machine when developing in containers
+- **Configurable File Polling**: Automatic file watching in container environments via `ODIN_POLLING_INTERVAL` environment variable
+- **Chrome Debug Launcher**: New projects include `launch-chrome-debug.bat` for easy Chrome setup
+
+## What to Expect
+
+- **Existing Projects**: Continue to work without any changes. All existing functionality is preserved.
+- **New Projects**: Will automatically include:
+  - `.devcontainer/devcontainer.json` - VS Code devcontainer configuration
+  - `.devcontainer/docker-compose.yml` - Docker Compose setup with Node.js 22
+  - `launch-chrome-debug.bat` - Chrome remote debugging launcher script
+- **Command Compatibility**: All existing `odin` commands work exactly the same way
+- **Package Name**: The package name has changed from `@infor-up/m3-odin-cli` to `@ajayyadukrishnan/m3-odin-cli`, but the CLI command (`odin`) remains the same
+
+## Using Devcontainer (Optional)
+
+If you want to use the new devcontainer features:
+
+1. **On Windows Host**: Run `launch-chrome-debug.bat` to start Chrome with remote debugging
+2. **In VS Code**: Open your project and click "Reopen in Container" when prompted
+3. **In Container**: Use `odin login` and `odin serve` as normal - they will automatically connect to Chrome on the host
+
+The devcontainer is pre-configured with:
+- Port 8080 for the dev server (accessible at `http://localhost:8080` on host)
+- Port 9222 for Chrome remote debugging
+- Environment variables: `CHROME_DEBUG_PORT=9222` and `ODIN_POLLING_INTERVAL=2000`
+
 # Content
 
 - [Packages](#packages)
@@ -30,10 +97,10 @@ The M3 Odin SDK consists of three different NPM packages. The packages are publi
 
 These are the names of the packages and their npm links:
 
-- @infor-up/m3-odin-cli
-  - [https://www.npmjs.com/package/@infor-up/m3-odin-cli](https://www.npmjs.com/package/@infor-up/m3-odin-cli)
+- @ajayyadukrishnan/m3-odin-cli
+  - CLI package (replaces @infor-up/m3-odin-cli)
 - @infor-up/m3-odin
-  - [https://www.npmjs.com/package/@infor-up/m3-odi](https://www.npmjs.com/package/@infor-up/m3-odin)
+  - [https://www.npmjs.com/package/@infor-up/m3-odin](https://www.npmjs.com/package/@infor-up/m3-odin)
 - @infor-up/m3-odin-angular
   - [https://www.npmjs.com/package/@infor-up/m3-odin-angular](https://www.npmjs.com/package/@infor-up/m3-odin-angular)
 
@@ -41,16 +108,12 @@ These are the names of the packages and their npm links:
 
 The M3 Odin CLI is a command line interface for creating and working with projects. The CLI needs to be installed before it can be used.
 
-Run the following command to install the CLI globally on your local computer.
+> **Note**: If you have the old `@infor-up/m3-odin-cli` package installed, please see the [Migration section](#migration-from-infor-upm3-odin-cli) above for uninstall instructions.
+
+Run the following command to install the CLI globally on your local computer directly from GitHub:
 
 ```
-npm install -g @infor-up/m3-odin-cli
-```
-
-Alternatively, to get the most up-to-date (but potentially unstable) version, add the `@next` tag:
-
-```
-npm install -g @infor-up/m3-odin-cli@next
+npm install -g https://raw.githubusercontent.com/ajayyadukrishnan/m3-h5-sdk/refs/heads/master/cli/ajayyadukrishnan-m3-odin-cli-7.2.0.tgz
 ```
 
 ## Verify installation
