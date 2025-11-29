@@ -9,6 +9,21 @@ import { baseConfig } from './webpack.config.js';
 
 const require = createRequire(import.meta.url);
 
+/**
+ * Gets the file watching polling interval from environment variable or uses default
+ */
+function getPollingInterval(): number | undefined {
+   const pollEnv = process.env.ODIN_POLLING_INTERVAL;
+   if (pollEnv) {
+      const interval = parseInt(pollEnv, 10);
+      if (!isNaN(interval) && interval > 0) {
+         return interval;
+      }
+      console.warn(`Invalid ODIN_POLLING_INTERVAL value "${pollEnv}", using default 2000`);
+   }
+   // Default to 2000ms if not set (useful for container environments)
+   return 2000;
+}
 
 export interface IServeOptions {
    port: number;
@@ -17,7 +32,18 @@ export interface IServeOptions {
 }
 
 async function serveBasicProject(options: IServeOptions) {
+   const pollingInterval = getPollingInterval();
    const configWithDevServerEntry = addWebpackClientEntry(baseConfig, options.port);
+   
+   // Add watchOptions with polling for file watching (useful in container environments)
+   if (pollingInterval) {
+      configWithDevServerEntry.watchOptions = {
+         poll: pollingInterval,
+         aggregateTimeout: 300,
+         ignored: /node_modules/,
+      };
+   }
+   
    const webpackCompiler = webpack(configWithDevServerEntry);
    const odinConfig = readConfig();
    delete odinConfig.projectName; // TODO: webpack-dev-server does not allow additional properties. Find another place to store projectName.
@@ -26,6 +52,9 @@ async function serveBasicProject(options: IServeOptions) {
       ...devServerConfig,
    });
    console.log(`Server is starting. Go to http://localhost:${options.port} in your browser.`);
+   if (pollingInterval) {
+      console.log(`File watching polling enabled with interval: ${pollingInterval}ms`);
+   }
    await new Promise<void>((resolvePromise, rejectPromise) => {
       server.listen(options.port, "localhost", (error?: Error) => {
          if (error) {
@@ -47,7 +76,17 @@ async function serveAngularProject(options: IServeOptions) {
    const proxyTmpPath = path.resolve(os.tmpdir(), proxyFile.name);
    const fileContent = proxyFile.content;
    fs.writeFileSync(proxyTmpPath, fileContent);
-   await executeAngularCli('serve', '--port', `${options.port}`, '--proxy-config', proxyTmpPath);
+   
+   const pollingInterval = getPollingInterval();
+   const angularCliArgs: string[] = ['--port', `${options.port}`, '--proxy-config', proxyTmpPath];
+   
+   // Add polling flag for Angular CLI if polling is enabled
+   if (pollingInterval) {
+      angularCliArgs.push('--poll', `${pollingInterval}`);
+      console.log(`File watching polling enabled with interval: ${pollingInterval}ms`);
+   }
+   
+   await executeAngularCli('serve', ...angularCliArgs);
 }
 
 /**

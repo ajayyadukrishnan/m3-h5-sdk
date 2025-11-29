@@ -1,3 +1,4 @@
+import dns from 'dns';
 import fs from 'fs-extra';
 import os from 'os';
 import path from 'path';
@@ -87,10 +88,105 @@ class IonApiConfig {
 const WINDOW_WIDTH = 500;
 const WINDOW_HEIGHT = 600;
 
+/**
+ * Gets the Docker host IP address by resolving 'host.docker.internal'
+ * Returns null if not in a Docker environment or resolution fails
+ */
+async function getDockerHostIP(): Promise<string | null> {
+   try {
+      const address = await dns.promises.lookup('host.docker.internal');
+      return address.address;
+   } catch (error) {
+      // Not in Docker or host.docker.internal not available
+      return null;
+   }
+}
+
+/**
+ * Gets the Chrome remote debugging port from environment variable or uses default
+ */
+function getChromeDebugPort(): number {
+   const portEnv = process.env.CHROME_DEBUG_PORT;
+   if (portEnv) {
+      const port = parseInt(portEnv, 10);
+      if (!isNaN(port) && port > 0 && port < 65536) {
+         return port;
+      }
+      console.warn(`Invalid CHROME_DEBUG_PORT value "${portEnv}", using default 9222`);
+   }
+   return 9222;
+}
+
+/**
+ * Attempts to get the Chrome WebSocket debugger endpoint from remote Chrome
+ * Returns null if remote Chrome is not available
+ */
+async function getBrowserWebSocketEndpoint(hostIP: string, port: number): Promise<string | null> {
+   try {
+      const response = await fetch(`http://${hostIP}:${port}/json/version`, {
+         signal: AbortSignal.timeout(2000), // 2 second timeout
+      });
+      if (!response.ok) {
+         return null;
+      }
+      const data = await response.json();
+      return data.webSocketDebuggerUrl || null;
+   } catch (error) {
+      // Remote Chrome not available
+      return null;
+   }
+}
+
+/**
+ * Gets or launches a browser instance.
+ * In devcontainer environments, attempts to connect to Chrome remote debugging on the host.
+ * Falls back to launching a new browser instance if remote debugging is not available (only when not in container).
+ */
+async function getOrLaunchBrowser(launchOptions: {
+   headless?: boolean;
+   args?: string[];
+   defaultViewport?: { width: number; height: number };
+}): Promise<puppeteer.Browser> {
+   // Try to connect to remote Chrome (for devcontainer scenarios)
+   const dockerHostIP = await getDockerHostIP();
+   if (dockerHostIP) {
+      const port = getChromeDebugPort();
+      console.log(`Detected container environment. Attempting to connect to Chrome remote debugging on host at port ${port}...`);
+      const webSocketEndpoint = await getBrowserWebSocketEndpoint(dockerHostIP, port);
+      if (webSocketEndpoint) {
+         try {
+            const browser = await puppeteer.connect({
+               browserWSEndpoint: webSocketEndpoint,
+            });
+            console.log('Successfully connected to remote Chrome');
+            return browser;
+         } catch (error) {
+            throw new Error(
+               `Failed to connect to Chrome remote debugging on host (${dockerHostIP}:${port}). ` +
+               `Please ensure Chrome is running with remote debugging enabled: ` +
+               `chrome --remote-debugging-port=${port} --user-data-dir=/tmp/chrome-debug. ` +
+               `You can also set a custom port using the CHROME_DEBUG_PORT environment variable.`
+            );
+         }
+      } else {
+         throw new Error(
+            `Chrome remote debugging is not available on host (${dockerHostIP}:${port}). ` +
+            `Please ensure Chrome is running with remote debugging enabled: ` +
+            `chrome --remote-debugging-port=${port} --user-data-dir=/tmp/chrome-debug. ` +
+            `You can also set a custom port using the CHROME_DEBUG_PORT environment variable.`
+         );
+      }
+   }
+
+   // Launch new browser instance (default behavior when not in container)
+   console.log('Launching new browser instance...');
+   return await puppeteer.launch(launchOptions);
+}
+
 export async function login(options: LoginOptions) {
    const config = readIonApiConfig(options.ionApiConfig);
    console.log('A browser will pop up where you will be asked to sign in and approve the authorization request.');
-   const browser = await puppeteer.launch({
+   const browser = await getOrLaunchBrowser({
       headless: false,
       args: [
          `--app=${config.getAuthUrl()}`,
@@ -101,7 +197,17 @@ export async function login(options: LoginOptions) {
          height: WINDOW_HEIGHT,
       },
    });
-   const [page] = await browser.pages();
+   let page = (await browser.pages())[0];
+   if (!page) {
+      page = await browser.newPage();
+   }
+   
+   // If we connected to remote Chrome, navigate to the auth URL
+   // (since --app flag doesn't work when connecting to existing browser)
+   if (page.url() !== config.getAuthUrl()) {
+      console.log('Navigating to Auth URL:', config.getAuthUrl());
+      await page.goto(config.getAuthUrl(), { waitUntil: 'networkidle2' });
+   }
    console.log('Waiting for ION API Token');
    const token = await waitForAccessToken(page, config);
    writeTokenToFile(token);
