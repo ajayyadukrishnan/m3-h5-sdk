@@ -68,6 +68,50 @@ start chrome.exe --remote-debugging-port=9222 --remote-debugging-address=0.0.0.0
    fs.writeFileSync(destPath, chromeDebugScript);
 };
 
+const createDevcontainerConfig = (projectRoot: string) => {
+   const devcontainerDir = path.join(projectRoot, '.devcontainer');
+   fs.mkdirSync(devcontainerDir, { recursive: true });
+
+   const devcontainerJson = {
+      name: path.basename(projectRoot),
+      dockerComposeFile: "docker-compose.yml",
+      service: "app",
+      workspaceFolder: "/workspace",
+      customizations: {
+         vscode: {
+            extensions: [
+               "Zignd.html-css-class-completion"
+            ],
+            settings: {
+               "terminal.integrated.shell.linux": "/bin/bash"
+            }
+         }
+      },
+      postCreateCommand: "npm install && npm i -g @ajayyadukrishnan/m3-odin-cli && npm i -g @angular/cli"
+   };
+
+   const dockerComposeYml = `services:
+  app:
+    image: node:22-bullseye
+    working_dir: /workspace
+    volumes:
+      - ..:/workspace
+    command: ["/bin/sh", "-c", "sleep infinity"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    container_name: "${path.basename(projectRoot)}-devcontainer"
+    ports:
+      - "8080:8080"
+      - "9222:9222"
+    environment:
+      - CHROME_DEBUG_PORT=9222
+      - ODIN_POLLING_INTERVAL=2000
+`;
+
+   fs.writeJsonSync(path.join(devcontainerDir, 'devcontainer.json'), devcontainerJson, { spaces: 3 });
+   fs.writeFileSync(path.join(devcontainerDir, 'docker-compose.yml'), dockerComposeYml);
+};
+
 const newBasicProject = async (options: INewProjectOptions) => {
    const projectDir = path.resolve(options.name);
    if (fs.existsSync(projectDir)) {
@@ -81,6 +125,7 @@ const newBasicProject = async (options: INewProjectOptions) => {
    addOdinConfig(temporaryProjectDirectory, options);
    await copyVsCodeConfig(temporaryProjectDirectory);
    copyChromeDebugScript(temporaryProjectDirectory);
+   createDevcontainerConfig(temporaryProjectDirectory);
 
    fs.mkdirSync(projectDir);
    fs.copySync(temporaryProjectDirectory, projectDir);
@@ -181,6 +226,8 @@ const newAngularProject = async (options: INewProjectOptions) => {
    await copyVsCodeConfig(angularProjectRoot);
    console.log('Adding Chrome debug script...');
    copyChromeDebugScript(angularProjectRoot);
+   console.log('Creating devcontainer configuration...');
+   createDevcontainerConfig(angularProjectRoot);
    console.log('Adding Odin configuration...');
    addOdinConfig(angularProjectRoot, options);
 };
