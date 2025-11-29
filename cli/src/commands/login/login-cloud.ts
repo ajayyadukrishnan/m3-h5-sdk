@@ -1,7 +1,7 @@
 
 import puppeteer from 'puppeteer';
 import { LoginOptions } from './models.js';
-import { readIonApiConfig, waitForMneCookies, writeCookiesToFile } from './utils.js';
+import { getOrLaunchBrowser, readIonApiConfig, waitForMneCookies, writeCookiesToFile } from './utils.js';
 import { readConfig } from '../../utils.js';
 
 const WINDOW_WIDTH = 500;
@@ -11,7 +11,7 @@ export async function loginCloud({ ionApiConfig }: LoginOptions) {
    const { tenant } = readIonApiConfig(ionApiConfig);
    const odinConfig = readConfig();
 
-   const browser = await puppeteer.launch({
+   const browser = await getOrLaunchBrowser({
       headless: false,
       args: [
          `--app=${odinConfig.portalUrl}/${tenant}`,
@@ -22,7 +22,18 @@ export async function loginCloud({ ionApiConfig }: LoginOptions) {
          height: WINDOW_HEIGHT,
       },
    });
-   const [page] = await browser.pages();
+   let page = (await browser.pages())[0];
+   if (!page) {
+      page = await browser.newPage();
+   }
+   
+   // If we connected to remote Chrome, navigate to the portal URL
+   // (since --app flag doesn't work when connecting to existing browser)
+   const portalUrl = `${odinConfig.portalUrl}/${tenant}`;
+   if (page.url() !== portalUrl) {
+      console.log('Navigating to Portal URL:', portalUrl);
+      await page.goto(portalUrl, { waitUntil: 'networkidle2' });
+   }
    await page.waitForSelector("portal-root", { visible: true, timeout: 0 });
 
    await page.goto(`${odinConfig.m3Url}/mne`);
