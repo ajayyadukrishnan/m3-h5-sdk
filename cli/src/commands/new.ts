@@ -18,6 +18,7 @@ export interface INewProjectOptions {
    install?: boolean;
    git?: boolean;
    portalUrl?: string;
+   devcontainer?: boolean;
 }
 
 
@@ -87,7 +88,7 @@ const createDevcontainerConfig = (projectRoot: string) => {
             }
          }
       },
-      postCreateCommand: "npm install && npm i -g @ajayyadukrishnan/m3-odin-cli && npm i -g @angular/cli"
+      postCreateCommand: "npm install && npm i -g https://raw.githubusercontent.com/ajayyadukrishnan/m3-h5-sdk/refs/heads/master/cli/ajayyadukrishnan-m3-odin-cli-7.2.0.tgz && npm i -g @angular/cli"
    };
 
    const dockerComposeYml = `services:
@@ -124,8 +125,11 @@ const newBasicProject = async (options: INewProjectOptions) => {
 
    addOdinConfig(temporaryProjectDirectory, options);
    await copyVsCodeConfig(temporaryProjectDirectory);
-   copyChromeDebugScript(temporaryProjectDirectory);
-   createDevcontainerConfig(temporaryProjectDirectory);
+   
+   if (options.devcontainer !== false) {
+      copyChromeDebugScript(temporaryProjectDirectory);
+      createDevcontainerConfig(temporaryProjectDirectory);
+   }
 
    fs.mkdirSync(projectDir);
    fs.copySync(temporaryProjectDirectory, projectDir);
@@ -224,10 +228,14 @@ const newAngularProject = async (options: INewProjectOptions) => {
    await copySrc(angularProjectRoot, options.style);
    console.log('Copying VS Code configuration...');
    await copyVsCodeConfig(angularProjectRoot);
-   console.log('Adding Chrome debug script...');
-   copyChromeDebugScript(angularProjectRoot);
-   console.log('Creating devcontainer configuration...');
-   createDevcontainerConfig(angularProjectRoot);
+   
+   if (options.devcontainer !== false) {
+      console.log('Adding Chrome debug script...');
+      copyChromeDebugScript(angularProjectRoot);
+      console.log('Creating devcontainer configuration...');
+      createDevcontainerConfig(angularProjectRoot);
+   }
+   
    console.log('Adding Odin configuration...');
    addOdinConfig(angularProjectRoot, options);
 };

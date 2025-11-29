@@ -197,6 +197,15 @@ async function promptMissingOptions(overrides: any) {
       });
    }
 
+   if (overrides.devcontainer === undefined) {
+      questions.push({
+         type: 'confirm',
+         name: 'devcontainer',
+         message: 'Include devcontainer configuration?',
+         default: true
+      });
+   }
+
    const answers = questions.length
       ? await inquirer.prompt(questions)
       : {};
@@ -221,6 +230,10 @@ async function promptMissingOptions(overrides: any) {
          overrides.install !== undefined
             ? overrides.install
             : answers.install,
+      devcontainer:
+         overrides.devcontainer !== undefined
+            ? overrides.devcontainer
+            : answers.devcontainer,
       m3Url: overrides.m3Url || answers.m3Url,
       tenant: overrides.tenant || answers.tenant
    };
