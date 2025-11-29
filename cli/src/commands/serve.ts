@@ -56,7 +56,7 @@ async function serveBasicProject(options: IServeOptions) {
       console.log(`File watching polling enabled with interval: ${pollingInterval}ms`);
    }
    await new Promise<void>((resolvePromise, rejectPromise) => {
-      server.listen(options.port, "localhost", (error?: Error) => {
+      server.listen(options.port, "0.0.0.0", (error?: Error) => {
          if (error) {
             console.error('Failed to start Webpack Dev Server', error);
             rejectPromise(error);
@@ -78,7 +78,7 @@ async function serveAngularProject(options: IServeOptions) {
    fs.writeFileSync(proxyTmpPath, fileContent);
    
    const pollingInterval = getPollingInterval();
-   const angularCliArgs: string[] = ['--port', `${options.port}`, '--proxy-config', proxyTmpPath];
+   const angularCliArgs: string[] = ['--port', `${options.port}`, '--host', '0.0.0.0', '--proxy-config', proxyTmpPath];
    
    // Add polling flag for Angular CLI if polling is enabled
    if (pollingInterval) {

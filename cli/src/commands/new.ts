@@ -56,6 +56,18 @@ const copyVsCodeConfig = async (projectRoot: string) => {
    await fs.copy(srcDir, destDir);
 };
 
+const copyChromeDebugScript = (projectRoot: string) => {
+   const chromeDebugScript = `@echo off
+REM Launch Chrome with remote debugging enabled for devcontainer support
+REM The container will connect to this Chrome instance via host.docker.internal:9222
+REM Make sure CHROME_DEBUG_PORT in the container matches this port (default: 9222)
+
+start chrome.exe --remote-debugging-port=9222 --remote-debugging-address=0.0.0.0 --no-first-run --guest --window-size=800,700
+`;
+   const destPath = path.join(projectRoot, 'launch-chrome-debug.bat');
+   fs.writeFileSync(destPath, chromeDebugScript);
+};
+
 const newBasicProject = async (options: INewProjectOptions) => {
    const projectDir = path.resolve(options.name);
    if (fs.existsSync(projectDir)) {
@@ -68,6 +80,7 @@ const newBasicProject = async (options: INewProjectOptions) => {
 
    addOdinConfig(temporaryProjectDirectory, options);
    await copyVsCodeConfig(temporaryProjectDirectory);
+   copyChromeDebugScript(temporaryProjectDirectory);
 
    fs.mkdirSync(projectDir);
    fs.copySync(temporaryProjectDirectory, projectDir);
@@ -166,6 +179,8 @@ const newAngularProject = async (options: INewProjectOptions) => {
    await copySrc(angularProjectRoot, options.style);
    console.log('Copying VS Code configuration...');
    await copyVsCodeConfig(angularProjectRoot);
+   console.log('Adding Chrome debug script...');
+   copyChromeDebugScript(angularProjectRoot);
    console.log('Adding Odin configuration...');
    addOdinConfig(angularProjectRoot, options);
 };
